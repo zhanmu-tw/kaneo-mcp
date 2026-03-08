@@ -1,29 +1,8 @@
 # kaneo-mcp
 
-MCP server for the [Kaneo](https://kaneo.app) project management API. Gives AI assistants access to your Kaneo workspace — manage projects, tasks, columns, labels, time entries, and more.
+MCP server for [Kaneo](https://kaneo.app). Gives AI assistants access to your Kaneo workspace — manage projects, tasks, columns, labels, time entries, and more.
 
-## Setup
-
-```bash
-git clone https://github.com/zhanmu-tw/kaneo-mcp.git
-cd kaneo-mcp
-npm install
-npm run build
-```
-
-## Configuration
-
-Copy `.env.example` to `.env` and fill in your values:
-
-```
-KANEO_API_URL=https://kaneo.yourdomain.com
-KANEO_API_TOKEN=your-api-token
-KANEO_WORKSPACE_ID=your-workspace-id
-```
-
-`KANEO_WORKSPACE_ID` is only needed for running tests.
-
-## Usage
+## Quick Start
 
 Add to your MCP client config (Claude Desktop, Cursor, etc.):
 
@@ -31,8 +10,8 @@ Add to your MCP client config (Claude Desktop, Cursor, etc.):
 {
   "mcpServers": {
     "kaneo": {
-      "command": "node",
-      "args": ["/absolute/path/to/kaneo-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "github:zhanmu-tw/kaneo-mcp"],
       "env": {
         "KANEO_API_URL": "https://kaneo.yourdomain.com",
         "KANEO_API_TOKEN": "your-api-token"
@@ -41,6 +20,8 @@ Add to your MCP client config (Claude Desktop, Cursor, etc.):
   }
 }
 ```
+
+That's it — `npx` handles install and build automatically.
 
 ## Tools (48)
 
@@ -57,21 +38,24 @@ Add to your MCP client config (Claude Desktop, Cursor, etc.):
 | Search         | 1     | `global_search`                                                                                                                                                                                                                         |
 | Workflow Rules | 3     | `get_workflow_rules` `upsert_workflow_rule` `delete_workflow_rule`                                                                                                                                                                      |
 
-## Testing
-
-```bash
-npm test
-```
-
-Runs the full end-to-end test suite against your Kaneo instance. Requires all three `.env` vars to be set. Creates temporary resources and cleans them up.
-
 ## Development
 
 ```bash
+git clone https://github.com/zhanmu-tw/kaneo-mcp.git
+cd kaneo-mcp
+npm install
+npm run build
 npm run dev    # watch mode
-npm run build  # compile
-npm start      # run server
 ```
+
+## Testing
+
+```bash
+cp .env.example .env   # fill in your values
+npm test
+```
+
+Runs the full end-to-end test suite against your Kaneo instance (44 tests). Creates temporary resources and cleans them up.
 
 ## License
 

@@ -5,7 +5,7 @@ MCP server for the [Kaneo](https://kaneo.app) project management API. Gives AI a
 ## Setup
 
 ```bash
-git clone https://github.com/your-org/kaneo-mcp.git
+git clone https://github.com/zhanmu-tw/kaneo-mcp.git
 cd kaneo-mcp
 npm install
 npm run build

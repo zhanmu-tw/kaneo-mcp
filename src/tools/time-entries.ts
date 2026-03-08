@@ -1,83 +1,35 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
-import { KaneoClient } from "../client.js";
+import type { ToolFn } from "../registry.js";
 
-export function registerTimeEntryTools(server: McpServer, client: KaneoClient) {
-  server.tool(
-    "get_task_time_entries",
-    "Get all time entries for a specific task",
-    {
-      taskId: z.string().describe("Task ID"),
-    },
-    async ({ taskId }) => {
-      const data = await client.get(
-        `/api/time-entry/task/${encodeURIComponent(taskId)}`,
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+export const timeEntryTools: Record<string, ToolFn> = {
+  get_task_time_entries: async (client, args) => {
+    return client.get(
+      `/api/time-entry/task/${encodeURIComponent(args.taskId)}`,
+    );
+  },
 
-  server.tool(
-    "get_time_entry",
-    "Get a specific time entry by ID",
-    {
-      id: z.string().describe("Time entry ID"),
-    },
-    async ({ id }) => {
-      const data = await client.get(
-        `/api/time-entry/${encodeURIComponent(id)}`,
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  get_time_entry: async (client, args) => {
+    return client.get(`/api/time-entry/${encodeURIComponent(args.id)}`);
+  },
 
-  server.tool(
-    "create_time_entry",
-    "Create a new time entry for a task",
-    {
-      taskId: z.string().describe("Task ID"),
-      startTime: z.string().describe("Start time (ISO 8601 string)"),
-      endTime: z.string().optional().describe("End time (ISO 8601 string)"),
-      description: z.string().optional().describe("Description of work done"),
-    },
-    async (args) => {
-      const data = await client.post("/api/time-entry", args);
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  create_time_entry: async (client, args) => {
+    const body: Record<string, unknown> = {
+      taskId: args.taskId,
+      startTime: args.startTime,
+    };
+    if (args.endTime) body.endTime = args.endTime;
+    if (args.description) body.description = args.description;
+    return client.post("/api/time-entry", body);
+  },
 
-  server.tool(
-    "update_time_entry",
-    "Update an existing time entry",
-    {
-      id: z.string().describe("Time entry ID"),
-      startTime: z.string().optional().describe("Start time (ISO 8601 string)"),
-      endTime: z.string().optional().describe("End time (ISO 8601 string)"),
-      description: z.string().optional().describe("Description of work done"),
-    },
-    async ({ id, ...updates }) => {
-      // Kaneo API requires all fields in PUT — fetch current then merge
-      const current = (await client.get(
-        `/api/time-entry/${encodeURIComponent(id)}`,
-      )) as Record<string, unknown>;
-      const body = {
-        startTime: updates.startTime ?? current.startTime,
-        endTime: updates.endTime ?? current.endTime ?? "",
-        description: updates.description ?? current.description ?? "",
-      };
-      const data = await client.put(
-        `/api/time-entry/${encodeURIComponent(id)}`,
-        body,
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
-}
+  update_time_entry: async (client, args) => {
+    const current = (await client.get(
+      `/api/time-entry/${encodeURIComponent(args.id)}`,
+    )) as Record<string, unknown>;
+    const body = {
+      startTime: args.startTime ?? current.startTime,
+      endTime: args.endTime ?? current.endTime ?? "",
+      description: args.description ?? current.description ?? "",
+    };
+    return client.put(`/api/time-entry/${encodeURIComponent(args.id)}`, body);
+  },
+};

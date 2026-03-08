@@ -1,60 +1,24 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
-import { KaneoClient } from "../client.js";
+import type { ToolFn } from "../registry.js";
 
-export function registerWorkflowRuleTools(
-  server: McpServer,
-  client: KaneoClient,
-) {
-  server.tool(
-    "get_workflow_rules",
-    "Get all workflow rules for a project",
-    {
-      projectId: z.string().describe("Project ID"),
-    },
-    async ({ projectId }) => {
-      const data = await client.get(
-        `/api/workflow-rule/${encodeURIComponent(projectId)}`,
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+export const workflowRuleTools: Record<string, ToolFn> = {
+  get_workflow_rules: async (client, args) => {
+    return client.get(
+      `/api/workflow-rule/${encodeURIComponent(args.projectId)}`,
+    );
+  },
 
-  server.tool(
-    "upsert_workflow_rule",
-    "Create or update a workflow rule for a project",
-    {
-      projectId: z.string().describe("Project ID"),
-      integrationType: z.string().describe("Integration type"),
-      eventType: z.string().describe("Event type"),
-      columnId: z.string().describe("Target column ID"),
-    },
-    async ({ projectId, ...body }) => {
-      const data = await client.put(
-        `/api/workflow-rule/${encodeURIComponent(projectId)}`,
-        body,
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  upsert_workflow_rule: async (client, args) => {
+    return client.put(
+      `/api/workflow-rule/${encodeURIComponent(args.projectId)}`,
+      {
+        integrationType: args.integrationType,
+        eventType: args.eventType,
+        columnId: args.columnId,
+      },
+    );
+  },
 
-  server.tool(
-    "delete_workflow_rule",
-    "Delete a workflow rule",
-    {
-      id: z.string().describe("Workflow rule ID"),
-    },
-    async ({ id }) => {
-      const data = await client.delete(
-        `/api/workflow-rule/${encodeURIComponent(id)}`,
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
-}
+  delete_workflow_rule: async (client, args) => {
+    return client.delete(`/api/workflow-rule/${encodeURIComponent(args.id)}`);
+  },
+};

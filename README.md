@@ -1,31 +1,42 @@
-# kaneo-mcp
+# kaneo-cli
 
-MCP server for [Kaneo](https://kaneo.app). Gives AI assistants access to your Kaneo workspace — manage projects, tasks, columns, labels, time entries, and more.
+CLI for [Kaneo](https://kaneo.app). Gives AI assistants and scripts access to your Kaneo workspace — manage projects, tasks, columns, labels, time entries, and more.
 
-## Quick Start
+## Install
 
-Add to your MCP client config (Claude Desktop, Cursor, etc.):
-
-```json
-{
-  "mcpServers": {
-    "kaneo": {
-      "command": "npx",
-      "args": ["-y", "github:zhanmu-tw/kaneo-mcp"],
-      "env": {
-        "KANEO_API_URL": "https://kaneo.yourdomain.com",
-        "KANEO_API_TOKEN": "your-api-token"
-      }
-    }
-  }
-}
+```bash
+npm i -g kaneo-cli
 ```
 
-That's it — `npx` handles install and build automatically.
+## Usage
 
-## Tools (48)
+```bash
+kaneo <api-url> <workspace-id> <api-token> <function> [--arg=value ...]
+```
 
-| Category       | Count | Tools                                                                                                                                                                                                                                   |
+### Examples
+
+```bash
+# List all projects
+kaneo https://kaneo.example.com ws123 tok456 list_projects
+
+# Create a task
+kaneo https://kaneo.example.com ws123 tok456 create_task \
+  --projectId=abc --title="Fix bug" --status="To Do" --priority=high
+
+# Search across everything
+kaneo https://kaneo.example.com ws123 tok456 global_search --q=auth
+
+# Move a task to Done
+kaneo https://kaneo.example.com ws123 tok456 update_task_status \
+  --id=task123 --status="Done"
+```
+
+Output is JSON to stdout. Errors go to stderr with exit code 1.
+
+## Functions (48)
+
+| Category       | Count | Functions                                                                                                                                                                                                                               |
 | -------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Config         | 1     | `get_config`                                                                                                                                                                                                                            |
 | Projects       | 5     | `list_projects` `create_project` `get_project` `update_project` `delete_project`                                                                                                                                                        |
@@ -37,6 +48,8 @@ That's it — `npx` handles install and build automatically.
 | Notifications  | 5     | `list_notifications` `create_notification` `mark_notification_read` `mark_all_notifications_read` `clear_all_notifications`                                                                                                             |
 | Search         | 1     | `global_search`                                                                                                                                                                                                                         |
 | Workflow Rules | 3     | `get_workflow_rules` `upsert_workflow_rule` `delete_workflow_rule`                                                                                                                                                                      |
+
+See [SKILL.md](SKILL.md) for full parameter reference and usage examples.
 
 ## Development
 
@@ -55,7 +68,7 @@ cp .env.example .env   # fill in your values
 npm test
 ```
 
-Runs the full end-to-end test suite against your Kaneo instance (44 tests). Creates temporary resources and cleans them up.
+Runs the full end-to-end test suite against your Kaneo instance. Creates temporary resources and cleans them up.
 
 ## License
 

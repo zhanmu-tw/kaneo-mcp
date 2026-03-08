@@ -1,276 +1,95 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
-import { KaneoClient } from "../client.js";
+import type { ToolFn } from "../registry.js";
 
-const PriorityEnum = z
-  .enum(["no-priority", "low", "medium", "high", "urgent"])
-  .optional()
-  .describe("Task priority");
+export const taskTools: Record<string, ToolFn> = {
+  list_tasks: async (client, args) => {
+    return client.get(`/api/task/tasks/${encodeURIComponent(args.projectId)}`);
+  },
 
-export function registerTaskTools(server: McpServer, client: KaneoClient) {
-  server.tool(
-    "list_tasks",
-    "List all tasks for a specific project, organized by columns",
-    {
-      projectId: z.string().describe("Project ID"),
-    },
-    async ({ projectId }) => {
-      const data = await client.get(
-        `/api/task/tasks/${encodeURIComponent(projectId)}`,
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  create_task: async (client, args) => {
+    const body: Record<string, unknown> = {
+      title: args.title,
+      status: args.status,
+    };
+    if (args.description) body.description = args.description;
+    if (args.priority) body.priority = args.priority;
+    if (args.dueDate) body.dueDate = args.dueDate;
+    if (args.userId) body.userId = args.userId;
+    return client.post(`/api/task/${encodeURIComponent(args.projectId)}`, body);
+  },
 
-  server.tool(
-    "create_task",
-    "Create a new task in a project",
-    {
-      projectId: z.string().describe("Project ID"),
-      title: z.string().describe("Task title"),
-      description: z.string().optional().describe("Task description"),
-      priority: PriorityEnum,
-      status: z.string().describe("Task status (column name) — required"),
-      dueDate: z.string().optional().describe("Due date (ISO 8601 string)"),
-      userId: z.string().optional().describe("Assignee user ID"),
-    },
-    async ({ projectId, ...body }) => {
-      const data = await client.post(
-        `/api/task/${encodeURIComponent(projectId)}`,
-        body,
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  get_task: async (client, args) => {
+    return client.get(`/api/task/${encodeURIComponent(args.id)}`);
+  },
 
-  server.tool(
-    "get_task",
-    "Get a specific task by ID",
-    {
-      id: z.string().describe("Task ID"),
-    },
-    async ({ id }) => {
-      const data = await client.get(`/api/task/${encodeURIComponent(id)}`);
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  update_task: async (client, args) => {
+    const current = (await client.get(
+      `/api/task/${encodeURIComponent(args.id)}`,
+    )) as Record<string, unknown>;
+    const body = {
+      title: args.title ?? current.title,
+      description: args.description ?? current.description ?? "",
+      priority: args.priority ?? current.priority ?? "no-priority",
+      status: args.status ?? current.status,
+      projectId: args.projectId ?? current.projectId,
+      position:
+        args.position !== undefined
+          ? Number(args.position)
+          : (current.position ?? 0),
+      dueDate: args.dueDate ?? ((current.dueDate as string) || ""),
+      userId: args.userId ?? ((current.userId as string) || ""),
+    };
+    return client.put(`/api/task/${encodeURIComponent(args.id)}`, body);
+  },
 
-  server.tool(
-    "update_task",
-    "Update all fields of a task",
-    {
-      id: z.string().describe("Task ID"),
-      title: z.string().optional().describe("Task title"),
-      description: z.string().optional().describe("Task description"),
-      priority: PriorityEnum,
-      status: z.string().optional().describe("Task status"),
-      projectId: z
-        .string()
-        .optional()
-        .describe("Project ID (to move task between projects)"),
-      position: z.number().optional().describe("Task position within column"),
-      dueDate: z.string().optional().describe("Due date (ISO 8601 string)"),
-      userId: z.string().optional().describe("Assignee user ID"),
-    },
-    async ({ id, ...updates }) => {
-      // Kaneo API requires all fields in PUT — fetch current then merge
-      const current = (await client.get(
-        `/api/task/${encodeURIComponent(id)}`,
-      )) as Record<string, unknown>;
-      const body = {
-        title: updates.title ?? current.title,
-        description: updates.description ?? current.description ?? "",
-        priority: updates.priority ?? current.priority ?? "no-priority",
-        status: updates.status ?? current.status,
-        projectId: updates.projectId ?? current.projectId,
-        position: updates.position ?? current.position ?? 0,
-        dueDate: updates.dueDate ?? (current.dueDate || ""),
-        userId: updates.userId ?? (current.userId || ""),
-      };
-      const data = await client.put(
-        `/api/task/${encodeURIComponent(id)}`,
-        body,
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  delete_task: async (client, args) => {
+    return client.delete(`/api/task/${encodeURIComponent(args.id)}`);
+  },
 
-  server.tool(
-    "delete_task",
-    "Delete a task by ID",
-    {
-      id: z.string().describe("Task ID"),
-    },
-    async ({ id }) => {
-      const data = await client.delete(`/api/task/${encodeURIComponent(id)}`);
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  export_tasks: async (client, args) => {
+    return client.get(`/api/task/export/${encodeURIComponent(args.projectId)}`);
+  },
 
-  server.tool(
-    "export_tasks",
-    "Export all tasks from a project",
-    {
-      projectId: z.string().describe("Project ID"),
-    },
-    async ({ projectId }) => {
-      const data = await client.get(
-        `/api/task/export/${encodeURIComponent(projectId)}`,
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  import_tasks: async (client, args) => {
+    const tasks = JSON.parse(args.tasks);
+    return client.post(
+      `/api/task/import/${encodeURIComponent(args.projectId)}`,
+      { tasks },
+    );
+  },
 
-  server.tool(
-    "import_tasks",
-    "Import multiple tasks into a project",
-    {
-      projectId: z.string().describe("Project ID"),
-      tasks: z
-        .array(
-          z.object({
-            title: z.string().describe("Task title"),
-            status: z.string().describe("Task status (column name)"),
-            description: z.string().optional().describe("Task description"),
-            priority: z.string().optional().describe("Task priority"),
-            dueDate: z.string().optional().describe("Due date"),
-            userId: z.string().optional().describe("Assignee user ID"),
-          }),
-        )
-        .describe("Array of tasks to import"),
-    },
-    async ({ projectId, tasks }) => {
-      const data = await client.post(
-        `/api/task/import/${encodeURIComponent(projectId)}`,
-        { tasks },
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  update_task_status: async (client, args) => {
+    return client.put(`/api/task/status/${encodeURIComponent(args.id)}`, {
+      status: args.status,
+    });
+  },
 
-  server.tool(
-    "update_task_status",
-    "Update only the status of a task",
-    {
-      id: z.string().describe("Task ID"),
-      status: z.string().describe("New status (column name)"),
-    },
-    async ({ id, status }) => {
-      const data = await client.put(
-        `/api/task/status/${encodeURIComponent(id)}`,
-        { status },
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  update_task_priority: async (client, args) => {
+    return client.put(`/api/task/priority/${encodeURIComponent(args.id)}`, {
+      priority: args.priority,
+    });
+  },
 
-  server.tool(
-    "update_task_priority",
-    "Update only the priority of a task",
-    {
-      id: z.string().describe("Task ID"),
-      priority: z
-        .enum(["no-priority", "low", "medium", "high", "urgent"])
-        .describe("New priority"),
-    },
-    async ({ id, priority }) => {
-      const data = await client.put(
-        `/api/task/priority/${encodeURIComponent(id)}`,
-        { priority },
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  update_task_assignee: async (client, args) => {
+    return client.put(`/api/task/assignee/${encodeURIComponent(args.id)}`, {
+      userId: args.userId,
+    });
+  },
 
-  server.tool(
-    "update_task_assignee",
-    "Assign or unassign a task to a user",
-    {
-      id: z.string().describe("Task ID"),
-      userId: z
-        .string()
-        .describe("User ID to assign (empty string to unassign)"),
-    },
-    async ({ id, userId }) => {
-      const data = await client.put(
-        `/api/task/assignee/${encodeURIComponent(id)}`,
-        { userId },
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  update_task_due_date: async (client, args) => {
+    return client.put(`/api/task/due-date/${encodeURIComponent(args.id)}`, {
+      dueDate: args.dueDate,
+    });
+  },
 
-  server.tool(
-    "update_task_due_date",
-    "Update only the due date of a task",
-    {
-      id: z.string().describe("Task ID"),
-      dueDate: z.string().describe("New due date (ISO 8601 string)"),
-    },
-    async ({ id, dueDate }) => {
-      const data = await client.put(
-        `/api/task/due-date/${encodeURIComponent(id)}`,
-        { dueDate },
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
+  update_task_title: async (client, args) => {
+    return client.put(`/api/task/title/${encodeURIComponent(args.id)}`, {
+      title: args.title,
+    });
+  },
 
-  server.tool(
-    "update_task_title",
-    "Update only the title of a task",
-    {
-      id: z.string().describe("Task ID"),
-      title: z.string().describe("New title"),
-    },
-    async ({ id, title }) => {
-      const data = await client.put(
-        `/api/task/title/${encodeURIComponent(id)}`,
-        { title },
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
-
-  server.tool(
-    "update_task_description",
-    "Update only the description of a task",
-    {
-      id: z.string().describe("Task ID"),
-      description: z.string().describe("New description"),
-    },
-    async ({ id, description }) => {
-      const data = await client.put(
-        `/api/task/description/${encodeURIComponent(id)}`,
-        { description },
-      );
-      return {
-        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-      };
-    },
-  );
-}
+  update_task_description: async (client, args) => {
+    return client.put(`/api/task/description/${encodeURIComponent(args.id)}`, {
+      description: args.description,
+    });
+  },
+};
